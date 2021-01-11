@@ -126,7 +126,7 @@ def main (model_class_name=None,
                     alignments[ source_filename_stem ] = []
 
                 alignments_ar = alignments[ source_filename_stem ]
-                alignments_ar.append ( (dflimg.get_source_landmarks(), filepath, source_filepath, dflimg.get_image_to_face_mat(), dflimg.get_shape()[0]) )
+                alignments_ar.append ( (dflimg.get_source_landmarks(), filepath, source_filepath, dflimg.get_image_to_face_mat(), dflimg.get_shape()[0], dflimg.get_face_type()) )
 
                 if len(alignments_ar) > 1:
                     multiple_faces_detected = True
@@ -139,10 +139,11 @@ def main (model_class_name=None,
             for a_key in list(alignments.keys()):
                 a_ar = alignments[a_key]
                 if len(a_ar) > 1:
-                    for _, filepath, source_filepath in a_ar:
+                    print(a_ar)
+                    for _, filepath, source_filepath, _, _, _ in a_ar:
                         io.log_info (f"alignment {filepath.name} refers to {source_filepath.name} ")
                     io.log_info ("")
-                alignments[a_key] = [ (a[0], a[3], a[4]) for a in a_ar]
+                alignments[a_key] = [ (a[0], a[3], a[4], a[5]) for a in a_ar]
 
             if multiple_faces_detected:
                 io.log_info ("It is strongly recommended to process the faces separatelly.")
@@ -155,10 +156,11 @@ def main (model_class_name=None,
                 landmarks_list = None
                 image_to_face_mat = None
                 aligned_size = None
+                aligned_face_type = None
                 if alignment is not None:
-                    landmarks_list, image_to_face_mat, aligned_size = alignment[0]
+                    landmarks_list, image_to_face_mat, aligned_size, aligned_face_type = alignment[0]
                     landmarks_list = [landmarks_list]
-                frame_info = FrameInfo(filepath=Path(p), landmarks_list=landmarks_list, image_to_face_mat=image_to_face_mat, aligned_size=aligned_size)
+                frame_info = FrameInfo(filepath=Path(p), landmarks_list=landmarks_list, image_to_face_mat=image_to_face_mat, aligned_size=aligned_size, face_type=aligned_face_type)
                 frame = InteractiveMergerSubprocessor.Frame(frame_info=frame_info)
                 frames.append(frame)
 
