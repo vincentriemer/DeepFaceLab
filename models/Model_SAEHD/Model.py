@@ -34,7 +34,7 @@ class SAEHDModel(ModelBase):
         default_face_type          = self.options['face_type']          = self.load_or_def_option('face_type', 'f')
         default_models_opt_on_gpu  = self.options['models_opt_on_gpu']  = self.load_or_def_option('models_opt_on_gpu', True)
 
-        archi = self.load_or_def_option('archi', 'df')
+        archi = self.load_or_def_option('archi', 'liae-ud')
         archi = {'dfuhd':'df-u','liaeuhd':'liae-u'}.get(archi, archi) #backward comp
         default_archi              = self.options['archi'] = archi
 
@@ -47,14 +47,13 @@ class SAEHDModel(ModelBase):
         default_mouth_prio         = self.options['mouth_prio']         = self.load_or_def_option('mouth_prio', False)
         default_uniform_yaw        = self.options['uniform_yaw']        = self.load_or_def_option('uniform_yaw', False)
 
+        default_adabelief          = self.options['adabelief']          = self.load_or_def_option('adabelief', True)
+
         lr_dropout = self.load_or_def_option('lr_dropout', 'n')
         lr_dropout = {True:'y', False:'n'}.get(lr_dropout, lr_dropout) #backward comp
         default_lr_dropout         = self.options['lr_dropout'] = lr_dropout
 
         default_random_warp        = self.options['random_warp']        = self.load_or_def_option('random_warp', True)
-        default_gan_power          = self.options['gan_power']          = self.load_or_def_option('gan_power', 0.0)
-        default_gan_old            = self.options['gan_old']            = self.load_or_def_option('gan_old', False)
-
         default_true_face_power    = self.options['true_face_power']    = self.load_or_def_option('true_face_power', 0.0)
         default_face_style_power   = self.options['face_style_power']   = self.load_or_def_option('face_style_power', 0.0)
         default_bg_style_power     = self.options['bg_style_power']     = self.load_or_def_option('bg_style_power', 0.0)
@@ -74,8 +73,8 @@ class SAEHDModel(ModelBase):
             resolution = io.input_int("Resolution", default_resolution, add_info="64-640", help_message="More resolution requires more VRAM and time to train. Value will be adjusted to multiple of 16 and 32 for -d archi.")
             resolution = np.clip ( (resolution // 16) * 16, min_res, max_res)
             self.options['resolution'] = resolution
-            self.options['face_type'] = io.input_str ("Face type", default_face_type, ['h','mf','f','wf','head'], help_message="Half / mid face / full face / whole face / head. Half face has better resolution, but covers less area of cheeks. Mid face is 30% wider than half face. 'Whole face' covers full area of face include forehead. 'head' covers full head, but requires XSeg for src and dst faceset.").lower()
-
+            self.options['face_type'] = io.input_str ("Face type", default_face_type, ['h','mf','f','wf','head', 'custom'], help_message="Half / mid face / full face / whole face / head / custom. Half face has better resolution, but covers less area of cheeks. Mid face is 30% wider than half face. 'Whole face' covers full area of face include forehead. 'head' covers full head, but requires XSeg for src and dst faceset.").lower()
+            
             while True:
                 archi = io.input_str ("AE architecture", default_archi, help_message=\
 """
@@ -129,26 +128,36 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
             self.options['d_mask_dims'] = d_mask_dims + d_mask_dims % 2
 
         if self.is_first_run() or ask_override:
-            if self.options['face_type'] == 'wf' or self.options['face_type'] == 'head':
+            if self.options['face_type'] == 'wf' or self.options['face_type'] == 'head' or self.options['face_type'] == 'custom':
                 self.options['masked_training']  = io.input_bool ("Masked training", default_masked_training, help_message="This option is available only for 'whole_face' or 'head' type. Masked training clips training area to full_face mask or XSeg mask, thus network will train the faces properly.")
 
             self.options['eyes_prio'] = io.input_bool ("Eyes priority", default_eyes_prio, help_message='Helps to fix eye problems during training like "alien eyes" and wrong eyes direction ( especially on HD architectures ) by forcing the neural network to train eyes with higher priority. before/after https://i.imgur.com/YQHOuSR.jpg ')
             self.options['mouth_prio'] = io.input_bool ("Mouth priority", default_mouth_prio, help_message='Helps to fix mouth problems during training by forcing the neural network to train mouth with higher priority similar to eyes ')
 
             self.options['uniform_yaw'] = io.input_bool ("Uniform yaw distribution of samples", default_uniform_yaw, help_message='Helps to fix blurry side faces due to small amount of them in the faceset.')
-
+        
+        default_gan_power          = self.options['gan_power']          = self.load_or_def_option('gan_power', 0.0)
+        default_gan_patch_size     = self.options['gan_patch_size']     = self.load_or_def_option('gan_patch_size', self.options['resolution'] // 8)
+        default_gan_dims           = self.options['gan_dims']           = self.load_or_def_option('gan_dims', 16)
+        
         if self.is_first_run() or ask_override:
             self.options['models_opt_on_gpu'] = io.input_bool ("Place models and optimizer on GPU", default_models_opt_on_gpu, help_message="When you train on one GPU, by default model and optimizer weights are placed on GPU to accelerate the process. You can place they on CPU to free up extra VRAM, thus set bigger dimensions.")
+
+            self.options['adabelief'] = io.input_bool ("Use AdaBelief optimizer?", default_adabelief, help_message="Use AdaBelief optimizer. It requires more VRAM, but the accuracy and the generalization of the model is higher.")
 
             self.options['lr_dropout']  = io.input_str (f"Use learning rate dropout", default_lr_dropout, ['n','y','cpu'], help_message="When the face is trained enough, you can enable this option to get extra sharpness and reduce subpixel shake for less amount of iterations. Enabled it before `disable random warp` and before GAN. \nn - disabled.\ny - enabled\ncpu - enabled on CPU. This allows not to use extra VRAM, sacrificing 20% time of iteration.")
 
             self.options['random_warp'] = io.input_bool ("Enable random warp of samples", default_random_warp, help_message="Random warp is required to generalize facial expressions of both faces. When the face is trained enough, you can disable it to get extra sharpness and reduce subpixel shake for less amount of iterations.")
 
-            self.options['gan_power'] = np.clip ( io.input_number ("GAN power", default_gan_power, add_info="0.0 .. 10.0", help_message="Train the network in Generative Adversarial manner. Forces the neural network to learn small details of the face. Enable it only when the face is trained enough and don't disable. Typical value is 0.1"), 0.0, 10.0 )
-
-            if (self.options['gan_power'] != 0):
-                self.options['gan_old'] = io.input_bool ("Use old GAN version", default_gan_old, help_message="Use older version of GAN." )
-
+            self.options['gan_power'] = np.clip ( io.input_number ("GAN power", default_gan_power, add_info="0.0 .. 1.0", help_message="Forces the neural network to learn small details of the face. Enable it only when the face is trained enough with lr_dropout(on) and random_warp(off), and don't disable. The higher the value, the higher the chances of artifacts. Typical fine value is 0.1"), 0.0, 1.0 )
+            
+            if self.options['gan_power'] != 0.0:                
+                gan_patch_size = np.clip ( io.input_int("GAN patch size", default_gan_patch_size, add_info="3-640", help_message="The higher patch size, the higher the quality, the more VRAM is required. You can get sharper edges even at the lowest setting. Typical fine value is resolution / 8." ), 3, 640 )
+                self.options['gan_patch_size'] = gan_patch_size
+                
+                gan_dims = np.clip ( io.input_int("GAN dimensions", default_gan_dims, add_info="4-64", help_message="The dimensions of the GAN network. The higher dimensions, the more VRAM is required. You can get sharper edges even at the lowest setting. Typical fine value is 16." ), 4, 64 )
+                self.options['gan_dims'] = gan_dims
+                
             if 'df' in self.options['archi']:
                 self.options['true_face_power'] = np.clip ( io.input_number ("'True face' power.", default_true_face_power, add_info="0.0000 .. 1.0", help_message="Experimental option. Discriminates result face to be more like src face. Higher value - stronger discrimination. Typical value is 0.01 . Comparison - https://i.imgur.com/czScS9q.png"), 0.0, 1.0 )
             else:
@@ -164,6 +173,8 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
 
         if self.options['pretrain'] and self.get_pretraining_data_path() is None:
             raise Exception("pretraining_data_path is not defined")
+        
+        self.gan_model_changed = (default_gan_patch_size != self.options['gan_patch_size']) or (default_gan_dims != self.options['gan_dims'])
 
         self.pretrain_just_disabled = (default_pretrain == True and self.options['pretrain'] == False)
 
@@ -180,6 +191,7 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                           'mf' : FaceType.MID_FULL,
                           'f'  : FaceType.FULL,
                           'wf' : FaceType.WHOLE_FACE,
+                          'custom' : FaceType.CUSTOM,
                           'head' : FaceType.HEAD}[ self.options['face_type'] ]
 
         eyes_prio = self.options['eyes_prio']
@@ -200,9 +212,9 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
         if self.pretrain_just_disabled:
             self.set_iter(0)
 
-        self.gan_power = gan_power = 0.0 if self.pretrain else self.options['gan_power']
-        self.gan_old = gan_old = self.options['gan_old']
+        adabelief = self.options['adabelief']
 
+        self.gan_power = gan_power = 0.0 if self.pretrain else self.options['gan_power']
         random_warp = False if self.pretrain else self.options['random_warp']
 
         if self.pretrain:
@@ -235,8 +247,10 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
             self.target_src = tf.placeholder (nn.floatx, bgr_shape)
             self.target_dst = tf.placeholder (nn.floatx, bgr_shape)
 
-            self.target_srcm_all = tf.placeholder (nn.floatx, mask_shape)
-            self.target_dstm_all = tf.placeholder (nn.floatx, mask_shape)
+            self.target_srcm    = tf.placeholder (nn.floatx, mask_shape)
+            self.target_srcm_em = tf.placeholder (nn.floatx, mask_shape)
+            self.target_dstm    = tf.placeholder (nn.floatx, mask_shape)
+            self.target_dstm_em = tf.placeholder (nn.floatx, mask_shape)
 
         # Initializing model classes
         model_archi = nn.DeepFakeArchi(resolution, opts=archi_opts)
@@ -244,10 +258,10 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
         with tf.device (models_opt_device):
             if 'df' in archi_type:
                 self.encoder = model_archi.Encoder(in_ch=input_ch, e_ch=e_dims, name='encoder')
-                encoder_out_ch = self.encoder.compute_output_channels ( (nn.floatx, bgr_shape))
+                encoder_out_ch = self.encoder.get_out_ch()*self.encoder.get_out_res(resolution)**2
 
                 self.inter = model_archi.Inter (in_ch=encoder_out_ch, ae_ch=ae_dims, ae_out_ch=ae_dims, name='inter')
-                inter_out_ch = self.inter.compute_output_channels ( (nn.floatx, (None,encoder_out_ch)))
+                inter_out_ch = self.inter.get_out_ch()
 
                 self.decoder_src = model_archi.Decoder(in_ch=inter_out_ch, d_ch=d_dims, d_mask_ch=d_mask_dims, name='decoder_src')
                 self.decoder_dst = model_archi.Decoder(in_ch=inter_out_ch, d_ch=d_dims, d_mask_ch=d_mask_dims, name='decoder_dst')
@@ -259,19 +273,18 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
 
                 if self.is_training:
                     if self.options['true_face_power'] != 0:
-                        self.code_discriminator = nn.CodeDiscriminator(ae_dims, code_res=model_archi.Inter.get_code_res()*2, name='dis' )
+                        self.code_discriminator = nn.CodeDiscriminator(ae_dims, code_res=self.inter.get_out_res(), name='dis' )
                         self.model_filename_list += [ [self.code_discriminator, 'code_discriminator.npy'] ]
 
             elif 'liae' in archi_type:
                 self.encoder = model_archi.Encoder(in_ch=input_ch, e_ch=e_dims, name='encoder')
-                encoder_out_ch = self.encoder.compute_output_channels ( (nn.floatx, bgr_shape))
+                encoder_out_ch = self.encoder.get_out_ch()*self.encoder.get_out_res(resolution)**2
 
                 self.inter_AB = model_archi.Inter(in_ch=encoder_out_ch, ae_ch=ae_dims, ae_out_ch=ae_dims*2, name='inter_AB')
                 self.inter_B  = model_archi.Inter(in_ch=encoder_out_ch, ae_ch=ae_dims, ae_out_ch=ae_dims*2, name='inter_B')
 
-                inter_AB_out_ch = self.inter_AB.compute_output_channels ( (nn.floatx, (None,encoder_out_ch)))
-                inter_B_out_ch = self.inter_B.compute_output_channels ( (nn.floatx, (None,encoder_out_ch)))
-                inters_out_ch = inter_AB_out_ch+inter_B_out_ch
+                inter_out_ch = self.inter_AB.get_out_ch()
+                inters_out_ch = inter_out_ch*2
                 self.decoder = model_archi.Decoder(in_ch=inters_out_ch, d_ch=d_dims, d_mask_ch=d_mask_dims, name='decoder')
 
                 self.model_filename_list += [ [self.encoder,  'encoder.npy'],
@@ -281,18 +294,13 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
 
             if self.is_training:
                 if gan_power != 0:
-                    if gan_old:
-                        self.D_src = nn.PatchDiscriminator(patch_size=resolution//16, in_ch=input_ch, name="D_src")
-                        self.D_src_x2 = nn.PatchDiscriminator(patch_size=resolution//32, in_ch=input_ch, name="D_src_x2")
-                        self.model_filename_list += [ [self.D_src, 'D_src.npy'] ]	
-                        self.model_filename_list += [ [self.D_src_x2, 'D_src_x2.npy'] ]
-                    else:
-                        self.D_src = nn.UNetPatchDiscriminator(patch_size=resolution//16, in_ch=input_ch, name="D_src")
-                        self.model_filename_list += [ [self.D_src, 'D_src_v2.npy'] ]
+                    self.D_src = nn.UNetPatchDiscriminator(patch_size=self.options['gan_patch_size'], in_ch=input_ch, base_ch=self.options['gan_dims'], name="D_src")
+                    self.model_filename_list += [ [self.D_src, 'GAN.npy'] ]
 
                 # Initialize optimizers
                 lr=5e-5
                 lr_dropout = 0.3 if self.options['lr_dropout'] in ['y','cpu'] and not self.pretrain else 1.0
+                OptimizerClass = nn.AdaBelief if adabelief else nn.RMSprop
                 clipnorm = 1.0 if self.options['clipgrad'] else 0.0
 
                 if 'df' in archi_type:
@@ -300,24 +308,21 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                 elif 'liae' in archi_type:
                     self.src_dst_trainable_weights = self.encoder.get_weights() + self.inter_AB.get_weights() + self.inter_B.get_weights() + self.decoder.get_weights()
 
-                self.src_dst_opt = nn.RMSprop(lr=lr, lr_dropout=lr_dropout, clipnorm=clipnorm, name='src_dst_opt')
+
+
+                self.src_dst_opt = OptimizerClass(lr=lr, lr_dropout=lr_dropout, clipnorm=clipnorm, name='src_dst_opt')
                 self.src_dst_opt.initialize_variables (self.src_dst_trainable_weights, vars_on_cpu=optimizer_vars_on_cpu, lr_dropout_on_cpu=self.options['lr_dropout']=='cpu')
                 self.model_filename_list += [ (self.src_dst_opt, 'src_dst_opt.npy') ]
 
                 if self.options['true_face_power'] != 0:
-                    self.D_code_opt = nn.RMSprop(lr=lr, lr_dropout=lr_dropout, clipnorm=clipnorm, name='D_code_opt')
+                    self.D_code_opt = OptimizerClass(lr=lr, lr_dropout=lr_dropout, clipnorm=clipnorm, name='D_code_opt')
                     self.D_code_opt.initialize_variables ( self.code_discriminator.get_weights(), vars_on_cpu=optimizer_vars_on_cpu, lr_dropout_on_cpu=self.options['lr_dropout']=='cpu')
                     self.model_filename_list += [ (self.D_code_opt, 'D_code_opt.npy') ]
 
                 if gan_power != 0:
-                    self.D_src_dst_opt = nn.RMSprop(lr=lr, lr_dropout=lr_dropout, clipnorm=clipnorm, name='D_src_dst_opt')
-
-                    if gan_old:
-                        self.D_src_dst_opt.initialize_variables ( self.D_src.get_weights()+self.D_src_x2.get_weights(), vars_on_cpu=optimizer_vars_on_cpu, lr_dropout_on_cpu=self.options['lr_dropout']=='cpu')
-                        self.model_filename_list += [ (self.D_src_dst_opt, 'D_src_dst_opt.npy') ]
-                    else:
-                        self.D_src_dst_opt.initialize_variables ( self.D_src.get_weights(), vars_on_cpu=optimizer_vars_on_cpu, lr_dropout_on_cpu=self.options['lr_dropout']=='cpu')#+self.D_src_x2.get_weights()
-                        self.model_filename_list += [ (self.D_src_dst_opt, 'D_src_v2_opt.npy') ]
+                    self.D_src_dst_opt = OptimizerClass(lr=lr, lr_dropout=lr_dropout, clipnorm=clipnorm, name='GAN_opt')
+                    self.D_src_dst_opt.initialize_variables ( self.D_src.get_weights(), vars_on_cpu=optimizer_vars_on_cpu, lr_dropout_on_cpu=self.options['lr_dropout']=='cpu')#+self.D_src_x2.get_weights()
+                    self.model_filename_list += [ (self.D_src_dst_opt, 'GAN_opt.npy') ]
 
         if self.is_training:
             # Adjust batch size for multiple GPU
@@ -349,8 +354,10 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                         gpu_warped_dst      = self.warped_dst [batch_slice,:,:,:]
                         gpu_target_src      = self.target_src [batch_slice,:,:,:]
                         gpu_target_dst      = self.target_dst [batch_slice,:,:,:]
-                        gpu_target_srcm_all = self.target_srcm_all[batch_slice,:,:,:]
-                        gpu_target_dstm_all = self.target_dstm_all[batch_slice,:,:,:]
+                        gpu_target_srcm_all = self.target_srcm[batch_slice,:,:,:]
+                        gpu_target_srcm_em  = self.target_srcm_em[batch_slice,:,:,:]
+                        gpu_target_dstm_all = self.target_dstm[batch_slice,:,:,:]
+                        gpu_target_dstm_em  = self.target_dstm_em[batch_slice,:,:,:]
 
                     # process model tensors
                     if 'df' in archi_type:
@@ -385,10 +392,10 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                     # unpack masks from one combined mask
                     gpu_target_srcm      = tf.clip_by_value (gpu_target_srcm_all, 0, 1)
                     gpu_target_dstm      = tf.clip_by_value (gpu_target_dstm_all, 0, 1)
-                    gpu_target_srcm_eye_mouth = tf.clip_by_value (gpu_target_srcm_all-1, 0, 1)
-                    gpu_target_dstm_eye_mouth = tf.clip_by_value (gpu_target_dstm_all-1, 0, 1)
-                    gpu_target_srcm_mouth = tf.clip_by_value (gpu_target_srcm_all-2, 0, 1)
-                    gpu_target_dstm_mouth = tf.clip_by_value (gpu_target_dstm_all-2, 0, 1)
+                    gpu_target_srcm_eye_mouth = tf.clip_by_value (gpu_target_srcm_em-1, 0, 1)
+                    gpu_target_dstm_eye_mouth = tf.clip_by_value (gpu_target_dstm_em-1, 0, 1)
+                    gpu_target_srcm_mouth = tf.clip_by_value (gpu_target_srcm_em-2, 0, 1)
+                    gpu_target_dstm_mouth = tf.clip_by_value (gpu_target_dstm_em-2, 0, 1)
                     gpu_target_srcm_eyes = tf.clip_by_value (gpu_target_srcm_eye_mouth-gpu_target_srcm_mouth, 0, 1)
                     gpu_target_dstm_eyes = tf.clip_by_value (gpu_target_dstm_eye_mouth-gpu_target_dstm_mouth, 0, 1)
 
@@ -399,14 +406,16 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                     gpu_target_dstm_style_blur = gpu_target_dstm_blur #default style mask is 0.5 on boundary
                     gpu_target_dstm_blur = tf.clip_by_value(gpu_target_dstm_blur, 0, 0.5) * 2
 
-                    gpu_target_dst_masked      = gpu_target_dst*gpu_target_dstm_blur
+                    gpu_target_dst_masked           = gpu_target_dst*gpu_target_dstm_blur                    
                     gpu_target_dst_style_masked      = gpu_target_dst*gpu_target_dstm_style_blur
                     gpu_target_dst_style_anti_masked = gpu_target_dst*(1.0 - gpu_target_dstm_style_blur)
 
+                    gpu_target_src_anti_masked = gpu_target_src*(1.0-gpu_target_srcm_blur)
                     gpu_target_src_masked_opt  = gpu_target_src*gpu_target_srcm_blur if masked_training else gpu_target_src
                     gpu_target_dst_masked_opt  = gpu_target_dst_masked if masked_training else gpu_target_dst
 
                     gpu_pred_src_src_masked_opt = gpu_pred_src_src*gpu_target_srcm_blur if masked_training else gpu_pred_src_src
+                    gpu_pred_src_src_anti_masked = gpu_pred_src_src*(1.0-gpu_target_srcm_blur)
                     gpu_pred_dst_dst_masked_opt = gpu_pred_dst_dst*gpu_target_dstm_blur if masked_training else gpu_pred_dst_dst
 
                     gpu_psd_target_dst_style_masked = gpu_pred_src_dst*gpu_target_dstm_style_blur
@@ -483,61 +492,42 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                         gpu_D_code_loss_gvs += [ nn.gradients (gpu_D_code_loss, self.code_discriminator.get_weights() ) ]
 
                     if gan_power != 0:
-                        if gan_old:
-                            gpu_pred_src_src_d       = self.D_src(gpu_pred_src_src_masked_opt)
+                        gpu_pred_src_src_d, \
+                        gpu_pred_src_src_d2           = self.D_src(gpu_pred_src_src_masked_opt)
 
-                            gpu_pred_src_src_d_ones  = tf.ones_like (gpu_pred_src_src_d)
-                            gpu_pred_src_src_d_zeros = tf.zeros_like(gpu_pred_src_src_d)
-                            gpu_target_src_d         = self.D_src(gpu_target_src_masked_opt)	
-                            gpu_target_src_d_ones    = tf.ones_like(gpu_target_src_d)
+                        gpu_pred_src_src_d_ones  = tf.ones_like (gpu_pred_src_src_d)
+                        gpu_pred_src_src_d_zeros = tf.zeros_like(gpu_pred_src_src_d)
 
-                            gpu_pred_src_src_x2_d       = self.D_src_x2(gpu_pred_src_src_masked_opt)
-                            gpu_pred_src_src_x2_d_ones  = tf.ones_like (gpu_pred_src_src_x2_d)
-                            gpu_pred_src_src_x2_d_zeros = tf.zeros_like(gpu_pred_src_src_x2_d)	
-                            gpu_target_src_x2_d         = self.D_src_x2(gpu_target_src_masked_opt)
-                            gpu_target_src_x2_d_ones    = tf.ones_like(gpu_target_src_x2_d)
+                        gpu_pred_src_src_d2_ones  = tf.ones_like (gpu_pred_src_src_d2)
+                        gpu_pred_src_src_d2_zeros = tf.zeros_like(gpu_pred_src_src_d2)
 
-                            gpu_D_src_dst_loss = (DLoss(gpu_target_src_d_ones      , gpu_target_src_d) + \
-                                                  DLoss(gpu_pred_src_src_d_zeros   , gpu_pred_src_src_d) ) * 0.5 + \
-                                                 (DLoss(gpu_target_src_x2_d_ones   , gpu_target_src_x2_d) + \
-                                                  DLoss(gpu_pred_src_src_x2_d_zeros, gpu_pred_src_src_x2_d) ) * 0.5
+                        gpu_target_src_d, \
+                        gpu_target_src_d2            = self.D_src(gpu_target_src_masked_opt)
 
-                            gpu_D_src_dst_loss_gvs += [ nn.gradients (gpu_D_src_dst_loss,
-                                    self.D_src.get_weights()+self.D_src_x2.get_weights() ) ]
-                            gpu_G_loss += 0.5*gan_power*( DLoss(gpu_pred_src_src_d_ones,
-                                    gpu_pred_src_src_d) + DLoss(gpu_pred_src_src_x2_d_ones, gpu_pred_src_src_x2_d))
+                        gpu_target_src_d_ones    = tf.ones_like(gpu_target_src_d)
+                        gpu_target_src_d2_ones    = tf.ones_like(gpu_target_src_d2)
 
-                        else:
-                            gpu_pred_src_src_d, \
-                            gpu_pred_src_src_d2           = self.D_src(gpu_pred_src_src_masked_opt)
+                        gpu_D_src_dst_loss = (DLoss(gpu_target_src_d_ones      , gpu_target_src_d) + \
+                                              DLoss(gpu_pred_src_src_d_zeros   , gpu_pred_src_src_d) ) * 0.5 + \
+                                             (DLoss(gpu_target_src_d2_ones      , gpu_target_src_d2) + \
+                                              DLoss(gpu_pred_src_src_d2_zeros   , gpu_pred_src_src_d2) ) * 0.5
 
-                            gpu_pred_src_src_d_ones  = tf.ones_like (gpu_pred_src_src_d)
-                            gpu_pred_src_src_d_zeros = tf.zeros_like(gpu_pred_src_src_d)
+                        gpu_D_src_dst_loss_gvs += [ nn.gradients (gpu_D_src_dst_loss, self.D_src.get_weights() ) ]#+self.D_src_x2.get_weights()
 
-                            gpu_pred_src_src_d2_ones  = tf.ones_like (gpu_pred_src_src_d2)
-                            gpu_pred_src_src_d2_zeros = tf.zeros_like(gpu_pred_src_src_d2)
-
-                            gpu_target_src_d, \
-                            gpu_target_src_d2            = self.D_src(gpu_target_src_masked_opt)
-
-                            gpu_target_src_d_ones    = tf.ones_like(gpu_target_src_d)
-                            gpu_target_src_d2_ones    = tf.ones_like(gpu_target_src_d2)
-
-                            gpu_D_src_dst_loss = (DLoss(gpu_target_src_d_ones      , gpu_target_src_d) + \
-                                                DLoss(gpu_pred_src_src_d_zeros   , gpu_pred_src_src_d) ) * 0.5 + \
-                                                (DLoss(gpu_target_src_d2_ones      , gpu_target_src_d2) + \
-                                                DLoss(gpu_pred_src_src_d2_zeros   , gpu_pred_src_src_d2) ) * 0.5
-
-                            gpu_D_src_dst_loss_gvs += [ nn.gradients (gpu_D_src_dst_loss, self.D_src.get_weights() ) ]#+self.D_src_x2.get_weights()
-
-                            gpu_G_loss += gan_power*(DLoss(gpu_pred_src_src_d_ones, gpu_pred_src_src_d)  + \
-                                                    DLoss(gpu_pred_src_src_d2_ones, gpu_pred_src_src_d2))
-
+                        gpu_G_loss += gan_power*(DLoss(gpu_pred_src_src_d_ones, gpu_pred_src_src_d)  + \
+                                                 DLoss(gpu_pred_src_src_d2_ones, gpu_pred_src_src_d2))
+                                                               
+                        
+                        if masked_training:
+                            # Minimal src-src-bg rec with total_variation_mse to suppress random bright dots from gan
+                            gpu_G_loss += 0.000001*nn.total_variation_mse(gpu_pred_src_src)
+                            gpu_G_loss += 0.02*tf.reduce_mean(tf.square(gpu_pred_src_src_anti_masked-gpu_target_src_anti_masked),axis=[1,2,3] )
+                            
                     gpu_G_loss_gvs += [ nn.gradients ( gpu_G_loss, self.src_dst_trainable_weights ) ]
 
 
             # Average losses and gradients, and create optimizer update ops
-            with tf.device (models_opt_device):
+            with tf.device(f'/CPU:0'):
                 pred_src_src  = nn.concat(gpu_pred_src_src_list, 0)
                 pred_dst_dst  = nn.concat(gpu_pred_dst_dst_list, 0)
                 pred_src_dst  = nn.concat(gpu_pred_src_dst_list, 0)
@@ -545,6 +535,7 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                 pred_dst_dstm = nn.concat(gpu_pred_dst_dstm_list, 0)
                 pred_src_dstm = nn.concat(gpu_pred_src_dstm_list, 0)
 
+            with tf.device (models_opt_device):
                 src_loss = tf.concat(gpu_src_losses, 0)
                 dst_loss = tf.concat(gpu_dst_losses, 0)
                 src_dst_loss_gv_op = self.src_dst_opt.get_update_op (nn.average_gv_list (gpu_G_loss_gvs))
@@ -557,15 +548,17 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
 
 
             # Initializing training and view functions
-            def src_dst_train(warped_src, target_src, target_srcm_all, \
-                              warped_dst, target_dst, target_dstm_all):
+            def src_dst_train(warped_src, target_src, target_srcm, target_srcm_em,  \
+                              warped_dst, target_dst, target_dstm, target_dstm_em, ):
                 s, d, _ = nn.tf_sess.run ( [ src_loss, dst_loss, src_dst_loss_gv_op],
                                             feed_dict={self.warped_src :warped_src,
                                                        self.target_src :target_src,
-                                                       self.target_srcm_all:target_srcm_all,
+                                                       self.target_srcm:target_srcm,
+                                                       self.target_srcm_em:target_srcm_em,
                                                        self.warped_dst :warped_dst,
                                                        self.target_dst :target_dst,
-                                                       self.target_dstm_all:target_dstm_all,
+                                                       self.target_dstm:target_dstm,
+                                                       self.target_dstm_em:target_dstm_em,
                                                        })
                 return s, d
             self.src_dst_train = src_dst_train
@@ -576,14 +569,16 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                 self.D_train = D_train
 
             if gan_power != 0:
-                def D_src_dst_train(warped_src, target_src, target_srcm_all, \
-                                    warped_dst, target_dst, target_dstm_all):
+                def D_src_dst_train(warped_src, target_src, target_srcm, target_srcm_em,  \
+                                    warped_dst, target_dst, target_dstm, target_dstm_em, ):
                     nn.tf_sess.run ([src_D_src_dst_loss_gv_op], feed_dict={self.warped_src :warped_src,
                                                                            self.target_src :target_src,
-                                                                           self.target_srcm_all:target_srcm_all,
+                                                                           self.target_srcm:target_srcm,
+                                                                           self.target_srcm_em:target_srcm_em,
                                                                            self.warped_dst :warped_dst,
                                                                            self.target_dst :target_dst,
-                                                                           self.target_dstm_all:target_dstm_all})
+                                                                           self.target_dstm:target_dstm,
+                                                                           self.target_dstm_em:target_dstm_em})
                 self.D_src_dst_train = D_src_dst_train
 
 
@@ -637,6 +632,9 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                         do_init = True
             else:
                 do_init = self.is_first_run()
+                if self.is_training and gan_power != 0 and model == self.D_src:
+                    if self.gan_model_changed:
+                        do_init = True
 
             if not do_init:
                 do_init = not model.load_weights( self.get_strpath_storage_for_file(filename) )
@@ -666,6 +664,7 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                         sample_process_options=SampleProcessor.Options(random_flip=self.random_flip),
                         output_sample_types = [ {'sample_type': SampleProcessor.SampleType.FACE_IMAGE,'warp':random_warp, 'transform':True, 'channel_type' : SampleProcessor.ChannelType.BGR, 'ct_mode': ct_mode,                                           'face_type':self.face_type, 'data_format':nn.data_format, 'resolution': resolution},
                                                 {'sample_type': SampleProcessor.SampleType.FACE_IMAGE,'warp':False                      , 'transform':True, 'channel_type' : SampleProcessor.ChannelType.BGR, 'ct_mode': ct_mode,                                           'face_type':self.face_type, 'data_format':nn.data_format, 'resolution': resolution},
+                                                {'sample_type': SampleProcessor.SampleType.FACE_MASK, 'warp':False                      , 'transform':True, 'channel_type' : SampleProcessor.ChannelType.G,   'face_mask_type' : SampleProcessor.FaceMaskType.FULL_FACE, 'face_type':self.face_type, 'data_format':nn.data_format, 'resolution': resolution},
                                                 {'sample_type': SampleProcessor.SampleType.FACE_MASK, 'warp':False                      , 'transform':True, 'channel_type' : SampleProcessor.ChannelType.G,   'face_mask_type' : SampleProcessor.FaceMaskType.FULL_FACE_EYES, 'face_type':self.face_type, 'data_format':nn.data_format, 'resolution': resolution},
                                               ],
                         uniform_yaw_distribution=self.options['uniform_yaw'] or self.pretrain,
@@ -675,6 +674,7 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
                         sample_process_options=SampleProcessor.Options(random_flip=self.random_flip),
                         output_sample_types = [ {'sample_type': SampleProcessor.SampleType.FACE_IMAGE,'warp':random_warp, 'transform':True, 'channel_type' : SampleProcessor.ChannelType.BGR, 'ct_mode': fs_aug,                                                                 'face_type':self.face_type, 'data_format':nn.data_format, 'resolution': resolution},
                                                 {'sample_type': SampleProcessor.SampleType.FACE_IMAGE,'warp':False                      , 'transform':True, 'channel_type' : SampleProcessor.ChannelType.BGR, 'ct_mode': fs_aug,                                                                 'face_type':self.face_type, 'data_format':nn.data_format, 'resolution': resolution},
+                                                {'sample_type': SampleProcessor.SampleType.FACE_MASK, 'warp':False                      , 'transform':True, 'channel_type' : SampleProcessor.ChannelType.G,   'face_mask_type' : SampleProcessor.FaceMaskType.FULL_FACE, 'face_type':self.face_type, 'data_format':nn.data_format, 'resolution': resolution},
                                                 {'sample_type': SampleProcessor.SampleType.FACE_MASK, 'warp':False                      , 'transform':True, 'channel_type' : SampleProcessor.ChannelType.G,   'face_mask_type' : SampleProcessor.FaceMaskType.FULL_FACE_EYES, 'face_type':self.face_type, 'data_format':nn.data_format, 'resolution': resolution},
                                               ],
                         uniform_yaw_distribution=self.options['uniform_yaw'] or self.pretrain,
@@ -708,26 +708,28 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
 
         bs = self.get_batch_size()
 
-        ( (warped_src, target_src, target_srcm_all), \
-          (warped_dst, target_dst, target_dstm_all) ) = self.generate_next_samples()
+        ( (warped_src, target_src, target_srcm, target_srcm_em), \
+          (warped_dst, target_dst, target_dstm, target_dstm_em) ) = self.generate_next_samples()
 
-        src_loss, dst_loss = self.src_dst_train (warped_src, target_src, target_srcm_all, warped_dst, target_dst, target_dstm_all)
+        src_loss, dst_loss = self.src_dst_train (warped_src, target_src, target_srcm, target_srcm_em, warped_dst, target_dst, target_dstm, target_dstm_em)
 
         for i in range(bs):
-            self.last_src_samples_loss.append (  (target_src[i], target_srcm_all[i], src_loss[i] )  )
-            self.last_dst_samples_loss.append (  (target_dst[i], target_dstm_all[i], dst_loss[i] )  )
+            self.last_src_samples_loss.append (  (target_src[i], target_srcm[i], target_srcm_em[i], src_loss[i] )  )
+            self.last_dst_samples_loss.append (  (target_dst[i], target_dstm[i], target_dstm_em[i], dst_loss[i] )  )
 
         if len(self.last_src_samples_loss) >= bs*16:
-            src_samples_loss = sorted(self.last_src_samples_loss, key=operator.itemgetter(2), reverse=True)
-            dst_samples_loss = sorted(self.last_dst_samples_loss, key=operator.itemgetter(2), reverse=True)
+            src_samples_loss = sorted(self.last_src_samples_loss, key=operator.itemgetter(3), reverse=True)
+            dst_samples_loss = sorted(self.last_dst_samples_loss, key=operator.itemgetter(3), reverse=True)
 
-            target_src      = np.stack( [ x[0] for x in src_samples_loss[:bs] ] )
-            target_srcm_all = np.stack( [ x[1] for x in src_samples_loss[:bs] ] )
+            target_src        = np.stack( [ x[0] for x in src_samples_loss[:bs] ] )
+            target_srcm       = np.stack( [ x[1] for x in src_samples_loss[:bs] ] )
+            target_srcm_em = np.stack( [ x[2] for x in src_samples_loss[:bs] ] )
 
-            target_dst      = np.stack( [ x[0] for x in dst_samples_loss[:bs] ] )
-            target_dstm_all = np.stack( [ x[1] for x in dst_samples_loss[:bs] ] )
+            target_dst        = np.stack( [ x[0] for x in dst_samples_loss[:bs] ] )
+            target_dstm       = np.stack( [ x[1] for x in dst_samples_loss[:bs] ] )
+            target_dstm_em = np.stack( [ x[2] for x in dst_samples_loss[:bs] ] )
 
-            src_loss, dst_loss = self.src_dst_train (target_src, target_src, target_srcm_all, target_dst, target_dst, target_dstm_all)
+            src_loss, dst_loss = self.src_dst_train (target_src, target_src, target_srcm, target_srcm_em, target_dst, target_dst, target_dstm, target_dstm_em)
             self.last_src_samples_loss = []
             self.last_dst_samples_loss = []
 
@@ -735,22 +737,19 @@ Examples: df, liae, df-d, df-ud, liae-ud, ...
             self.D_train (warped_src, warped_dst)
 
         if self.gan_power != 0:
-            self.D_src_dst_train (warped_src, target_src, target_srcm_all, warped_dst, target_dst, target_dstm_all)
+            self.D_src_dst_train (warped_src, target_src, target_srcm, target_srcm_em, warped_dst, target_dst, target_dstm, target_dstm_em)
 
         return ( ('src_loss', np.mean(src_loss) ), ('dst_loss', np.mean(dst_loss) ), )
 
     #override
     def onGetPreview(self, samples):
-        ( (warped_src, target_src, target_srcm_all,),
-          (warped_dst, target_dst, target_dstm_all,) ) = samples
+        ( (warped_src, target_src, target_srcm, target_srcm_em),
+          (warped_dst, target_dst, target_dstm, target_dstm_em) ) = samples
 
         S, D, SS, DD, DDM, SD, SDM = [ np.clip( nn.to_data_format(x,"NHWC", self.model_data_format), 0.0, 1.0) for x in ([target_src,target_dst] + self.AE_view (target_src, target_dst) ) ]
         DDM, SDM, = [ np.repeat (x, (3,), -1) for x in [DDM, SDM] ]
 
-        target_srcm_all, target_dstm_all = [ nn.to_data_format(x,"NHWC", self.model_data_format) for x in ([target_srcm_all, target_dstm_all] )]
-
-        target_srcm = np.clip(target_srcm_all, 0, 1)
-        target_dstm = np.clip(target_dstm_all, 0, 1)
+        target_srcm, target_dstm = [ nn.to_data_format(x,"NHWC", self.model_data_format) for x in ([target_srcm, target_dstm] )]
 
         n_samples = min(4, self.get_batch_size(), 800 // self.resolution )
 

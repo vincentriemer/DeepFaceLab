@@ -1,3 +1,4 @@
+import os
 import sys
 import traceback
 import queue
@@ -13,7 +14,6 @@ import models
 from core.interact import interact as io
 import logging
 import datetime
-import os
 
 # adapted from https://stackoverflow.com/a/52295534
 class TensorBoardTool:
@@ -186,6 +186,12 @@ def trainerThread (s2c, c2s, e,
                             io.log_info("")
                             io.log_info("Trying to do the first iteration. If an error occurs, reduce the model parameters.")
                             io.log_info("")
+                            
+                            if sys.platform[0:3] == 'win':
+                                io.log_info("!!!")
+                                io.log_info("Windows 10 users IMPORTANT notice. You should set this setting in order to work correctly.")
+                                io.log_info("https://i.imgur.com/B7cmDCB.jpg")
+                                io.log_info("!!!")
 
                         iter, iter_time = model.train_one_iter()
 
