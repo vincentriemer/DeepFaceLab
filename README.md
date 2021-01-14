@@ -29,13 +29,16 @@ More than 95% of deepfake videos are created with DeepFaceLab.
 
 DeepFaceLab is used by such popular youtube channels as
 
-|![](doc/youtube_icon.png) [VFXChris Ume](https://www.youtube.com/channel/UCGf4OlX_aTt8DlrgiH3jN3g/videos)|![](doc/youtube_icon.png) [Sham00k](https://www.youtube.com/channel/UCZXbWcv7fSZFTAZV4beckyw/videos)|
+|![](doc/youtube_icon.png) [Ctrl Shift Face](https://www.youtube.com/channel/UCKpH0CKltc73e4wh0_pgL3g)|![](doc/youtube_icon.png) [VFXChris Ume](https://www.youtube.com/channel/UCGf4OlX_aTt8DlrgiH3jN3g/videos)|![](doc/youtube_icon.png) [Sham00k](https://www.youtube.com/channel/UCZXbWcv7fSZFTAZV4beckyw/videos)|
+|---|---|---|
+
+|![](doc/youtube_icon.png) [Collider videos](https://www.youtube.com/watch?v=A91P2qtPT54&list=PLayt6616lBclvOprvrC8qKGCO-mAhPRux)|![](doc/youtube_icon.png) [iFake](https://www.youtube.com/channel/UCC0lK2Zo2BMXX-k1Ks0r7dg/videos)|![](doc/youtube_icon.png) [NextFace](https://www.youtube.com/channel/UCFh3gL0a8BS21g-DHvXZEeQ/videos)|
+|---|---|---|
+
+|![](doc/youtube_icon.png) [Futuring Machine](https://www.youtube.com/channel/UCC5BbFxqLQgfnWPhprmQLVg)|![](doc/youtube_icon.png) [RepresentUS](https://www.youtube.com/channel/UCRzgK52MmetD9aG8pDOID3g)|
 |---|---|
 
-|![](doc/youtube_icon.png) [Collider videos](https://www.youtube.com/watch?v=A91P2qtPT54&list=PLayt6616lBclvOprvrC8qKGCO-mAhPRux)|![](doc/youtube_icon.png) [iFake](https://www.youtube.com/channel/UCC0lK2Zo2BMXX-k1Ks0r7dg/videos)|
-|---|---|
-
-|![](doc/youtube_icon.png) [NextFace](https://www.youtube.com/channel/UCFh3gL0a8BS21g-DHvXZEeQ/videos)|![](doc/youtube_icon.png) [Futuring Machine](https://www.youtube.com/channel/UCC5BbFxqLQgfnWPhprmQLVg)|![](doc/youtube_icon.png) [RepresentUS](https://www.youtube.com/channel/UCRzgK52MmetD9aG8pDOID3g)|
+|![](doc/youtube_icon.png) [DeepFakeCreator](https://www.youtube.com/channel/UCkNFhcYNLQ5hr6A6lZ56mKA)|![](doc/youtube_icon.png) [DeepFaker](https://www.youtube.com/channel/UCkHecfDTcSazNZSKPEhtPVQ)|![](doc/youtube_icon.png) [DeepFakes in movie](https://www.youtube.com/c/DeepFakesinmovie/videos)|
 |---|---|---|
 
 </td></tr>
@@ -49,7 +52,7 @@ DeepFaceLab is used by such popular youtube channels as
 
 ## Replace the face
 
-<img src="doc/replace_the_face.png" align="center">
+<img src="doc/replace_the_face.jpg" align="center">
 
 </td></tr>
 
@@ -137,17 +140,19 @@ DeepFaceLab is used by such popular youtube channels as
 
 <tr><td colspan=2 align="center">
 
-## Manipulate politicians speech
-(requires a skill in video editors such as *Adobe After Effects* or *Davinci Resolve*)
+## Manipulate politicians lips
+(voice replacement is not included!)
+(also requires a skill in video editors such as *Adobe After Effects* or *Davinci Resolve*)
+
 
 <img src="doc/political_speech1.jpg" align="center">
 
-![](doc/youtube_icon.png) https://www.youtube.com/watch?v=2Z1oA3GYPaY
+![](doc/youtube_icon.png) https://www.youtube.com/watch?v=rYKkQ3BOo_E
 
 
 <img src="doc/political_speech2.jpg" align="center">
 
-![](doc/youtube_icon.png) https://www.youtube.com/watch?v=sbFHhpYU15w
+![](doc/youtube_icon.png) https://www.youtube.com/watch?v=IvY-Abd2FfM
 
 <img src="doc/political_speech3.jpg" align="center">
 
@@ -189,7 +194,7 @@ Unfortunately, there is no "make everything ok" button in DeepFaceLab. You shoul
 </td></tr>
 
 <tr><td align="right">
-<a href="https://tinyurl.com/y6npm2su">Windows (magnet link)</a>
+<a href="https://tinyurl.com/y8lntghz">Windows (magnet link)</a>
 </td><td align="center">Last release. Use torrent client to download.</td></tr>
 
 <tr><td align="right">
@@ -225,11 +230,11 @@ Unfortunately, there is no "make everything ok" button in DeepFaceLab. You shoul
 </td></tr>
 
 <tr><td align="right">
-<a href="https://mrdeepfakes.com/forums/thread-guide-deepfacelab-2-0-explained-and-tutorials-recommended">DeepFaceLab guide</a>
+<a href="https://mrdeepfakes.com/forums/thread-guide-deepfacelab-2-0-guide">DeepFaceLab guide</a>
 </td><td align="center">Main guide</td></tr>
 
 <tr><td align="right">
-<a href="https://mrdeepfakes.com/forums/thread-guide-celebrity-faceset-dataset-creation-how-to-create-celebrity-facesets">Faceset creation guide</a>
+<a href="https://mrdeepfakes.com/forums/thread-guide-deepfacelab-2-0-guide?pid=18459#pid18459">Faceset creation guide</a>
 </td><td align="center">How to create the right faceset</td></tr>
 
 <tr><td align="right">
@@ -264,6 +269,11 @@ Unfortunately, there is no "make everything ok" button in DeepFaceLab. You shoul
 
 </td></tr>
 
+
+<tr><td align="right">
+<a href="https://discord.gg/S2h7kPySQp">Discord channel (English / Русский)</a>
+</td><td align="center"></td></tr>
+
 <tr><td align="right">
 <a href="https://www.reddit.com/r/RUdeepfakes/new/">reddit r/RUdeepfakes/</a>
 </td><td align="center">Постим русские дипфейки сюда !</td></tr>
@@ -285,16 +295,16 @@ Unfortunately, there is no "make everything ok" button in DeepFaceLab. You shoul
 </td><td align="center">the biggest NSFW English community</td></tr>
 
 <tr><td align="right">
-<a href="https://www.reddit.com/r/GifFakes/new/">reddit r/GifFakes/</a>
-</td><td align="center">Post your deepfakes there !</td></tr>
-
-<tr><td align="right">
-<a href="https://www.reddit.com/r/SFWdeepfakes/new/">reddit r/SFWdeepfakes/</a>
+<a href="https://www.reddit.com/r/DeepFakesSFW/new/">reddit r/DeepFakesSFW/</a>
 </td><td align="center">Post your deepfakes there !</td></tr>
 
 <tr><td align="right">
 QQ 951138799
 </td><td align="center">中文 Chinese QQ group for ML/AI experts</td></tr>
+
+<tr><td align="right">
+<a href="https://www.dfldata.xyz">dfldata.xyz</a>
+</td><td align="center">中文交流论坛，免费软件教程、模型、人脸数据</td></tr>
 
 <tr><td align="right">
 <a href="https://www.deepfaker.xyz/">deepfaker.xyz</a>

@@ -3,7 +3,7 @@ from core.leras import nn
 tf = nn.tf
 
 class RMSprop(nn.OptimizerBase):
-    def __init__(self, lr=0.001, rho=0.9, lr_dropout=1.0, epsilon=1e-7, clipnorm=0.0, name=None):
+    def __init__(self, lr=0.001, rho=0.9, lr_dropout=1.0, epsilon=1e-7, clipnorm=0.0, name=None, **kwargs):
         super().__init__(name=name)
 
         if name is None:

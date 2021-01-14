@@ -39,8 +39,10 @@ def MergeMaskedFace (predictor_func, predictor_input_shape,
 
     existing_mat = get_identity_affine_mat() if cfg.src_src else frame_info.image_to_face_mat
     aligned_size = frame_info.aligned_size
+    aligned_face_type = frame_info.face_type
+    should_use_existing_mat = existing_mat is not None and aligned_face_type == cfg.face_type
 
-    if existing_mat is not None:
+    if should_use_existing_mat:
         face_scale_mat = cv2.getRotationMatrix2D((0,0), 0, output_size/aligned_size)
         face_mat = concat_matrix(face_scale_mat, existing_mat)
         output_scale_mat = cv2.getRotationMatrix2D((output_size/2, output_size/2), 0, 1.0 + 0.01 * cfg.output_face_scale)
@@ -52,7 +54,7 @@ def MergeMaskedFace (predictor_func, predictor_input_shape,
     if mask_subres_size == output_size:
         face_mask_output_mat = face_output_mat
     else:
-        if existing_mat is not None:
+        if should_use_existing_mat:
             mask_output_scale_mat = cv2.getRotationMatrix2D((0, 0), 0, mask_subres_size/output_size)
             face_mask_output_mat = concat_matrix(mask_output_scale_mat, face_mat)
         else:
@@ -100,7 +102,7 @@ def MergeMaskedFace (predictor_func, predictor_input_shape,
 
         if cfg.mask_mode >= 7 and cfg.mask_mode <= 9:
             # obtain XSeg-dst
-            if existing_mat is not None:
+            if should_use_existing_mat:
                 xseg_scale_mat = cv2.getRotationMatrix2D((0,0), 0, xseg_input_size/aligned_size)
                 xseg_mat = concat_matrix(xseg_scale_mat, existing_mat)
             else:
